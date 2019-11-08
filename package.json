@@ -1,0 +1,24 @@
+{
+  "name": "worker-threads",
+  "version": "1.0.0",
+  "description": "Example code for worker threads article",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example1": "npm example1/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mlennox/node-worker-threads.git"
+  },
+  "keywords": [
+    "node",
+    "threads"
+  ],
+  "author": "Mark Lennox",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mlennox/node-worker-threads/issues"
+  },
+  "homepage": "https://github.com/mlennox/node-worker-threads#readme"
+}
