@@ -20,5 +20,10 @@
   "bugs": {
     "url": "https://github.com/mlennox/node-worker-threads/issues"
   },
-  "homepage": "https://github.com/mlennox/node-worker-threads#readme"
+  "homepage": "https://github.com/mlennox/node-worker-threads#readme",
+  "devDependencies": {
+    "chalk": "^2.4.2",
+    "eslint": "^6.6.0",
+    "yargs": "^14.2.0"
+  }
 }

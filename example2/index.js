@@ -1,46 +1,107 @@
 const { Worker } = require('worker_threads');
 const { performance } = require('perf_hooks');
 const { someText } = require('../common/someText');
+const { argv } = require('yargs');
 const os = require('os');
+const chalk = require('chalk');
+const { sleep } = require('../common/sleep');
 
-const cpuCount = os.cpus().length
-console.log(`Available cpus : ${cpuCount}`)
+function Example2() {
 
-// start the main event loop reporter
-function startMainLoopTimer() {
-  let previousTimestamp = performance.now();
-  setInterval(() => {
-    const timestamp = performance.now();
-    const duration = ((timestamp - previousTimestamp) / 1000).toFixed(3);
-    previousTimestamp = timestamp;
-    console.log(`Main loop interval duration was ${duration}secs (should be 2secs)`);
-  }, 2000);
+    // some scope 'globals'
+    let completedTasks = [];
+    let currentMainLoop = 1;
+
+    // vars for params
+    let pauseBetweenWorkers;
+
+    function initialise() {
+        console.log('argv', argv.pause);
+        pauseBetweenWorkers = argv.pause || 30;
+
+        console.log(`Available cpus : ${os.cpus().length}`);
+        console.log(`Pause between adding new workers : ${pauseBetweenWorkers}ms`);
+    }
+
+    /**
+    * Starts an interval timer that reports the actual duration of the interval
+    * to show how the worker threads do not have any effect on main loop
+    * 
+    * @param {*} mainLoopPulse - sets the interval between reports on main loop
+    */
+    function startMainLoopTimer(mainLoopPulse) {
+        let previousTimestamp = performance.now();
+        setInterval(() => {
+            const timestamp = performance.now();
+            const duration = ((timestamp - previousTimestamp) / 1000).toFixed(3);
+            previousTimestamp = timestamp;
+
+            // calculate completed tasks metrics
+            const countCompletedTasks = completedTasks.length;
+            const averageQueuetime = countCompletedTasks > 0 ? completedTasks.reduce((acc, num) => { return acc + num; }, 0) / countCompletedTasks : 0;
+            completedTasks = [];
+
+            console.log(chalk.yellow(`* * * * * * Main loop number ${currentMainLoop} interval duration was ${duration}secs (should be ${mainLoopPulse}secs) * * * * * *`));
+            console.log(chalk.red(`Worker threads finished task : ${countCompletedTasks}`));
+            console.log(chalk.red(`Average queue time : ${(averageQueuetime / 1000).toFixed(3)}secs`));
+
+            // increment the loop count - only used for display purposes
+            currentMainLoop++;
+        }, mainLoopPulse * 1000);
+    }
+
+    function setTimeoutToStartAddingWorkers(delayToAddingWorkers) {
+        setTimeout(() => {
+            console.log(chalk.cyan('- - - Starting to queue workers - - -'));
+            queueWorkers(0, pauseBetweenWorkers);
+        }, delayToAddingWorkers * 1000);
+    }
+
+    /**
+    * An infinite, non-blocking loop to add worker threads
+    * 
+    * @param {*} wordIndex - tracks the index of the current word we're sending to the worker
+    * @param {*} pause - pause in msec between generating a new worker 
+    */
+    async function queueWorkers(wordIndex, pause = 100) {
+        await sleep(pause).then(() => {
+            addWorker(wordIndex);
+            queueWorkers((wordIndex + 1) % someText.length, pause);
+        });
+    }
+
+    /**
+* Creates a new worker thread and passes a word and a timestamp. The worker will
+* just return the word and the timestamp will be used to calculate how long
+* the worker thread was queued for before there was an available thread
+* 
+* @param {*} wordIndex - tracks the index of the current word we're sending to the worker
+*/
+    function addWorker(wordIndex) {
+        const workerData = {
+            word: someText[wordIndex],
+            queued: performance.now()
+        };
+        const worker = new Worker('./worker.js', { workerData });
+        worker.on('message', ({ queuetime }) => {
+            completedTasks.push(queuetime);
+        });
+        worker.on('error', console.error);
+        worker.on('exit', code => {
+            if (code !== 0) {
+                throw new Error(`Worker stopped with exit code ${code}`);
+            }
+        });
+    }
+
+    // parse CLI params
+    initialise();
+
+    // kick off the main loop
+    startMainLoopTimer(1);
+
+    setTimeoutToStartAddingWorkers(4);
+
 }
 
-// queue workers forever
-function queueWorkers() {
-  do {
-    someText.forEach(word => {
-      // we're adding a timestamp `queued` to show when the task was 
-      const worker = new Worker('./worker.js', { workerData: { word, taskDuration: 2000 * (Math.random() + 1), queued: performance.now() } });
-      worker.on('message', ({ word, queuetime, duration }) => {
-        console.log(`queued for ${queuetime}ms, process took ${duration}ms "${word}"`);
-      });
-      worker.on('error', console.error);
-      worker.on('exit', code => {
-        if (code !== 0) {
-          throw new Error(`Worker stopped with exit code ${code}`);
-        }
-      });
-    });
-  } while (true);
-}
-
-// kick off the main loop to report every two seconds
-startMainLoopTimer();
-
-// start adding workers after 10 seconds
-setTimeout(() => {
-  queueWorkers();
-}, 10 * 1000);
-
+Example2();

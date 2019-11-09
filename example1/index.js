@@ -8,12 +8,12 @@ const { someText } = require('../common/someText');
  */
 
 someText.forEach(word => {
-  const worker = new Worker('./worker.js', { workerData: word });
-  worker.on('message', console.log);
-  worker.on('error', console.error);
-  worker.on('exit', code => {
-    if (code !== 0) {
-      throw new Error(`Worker stopped with exit code ${code}`);
-    }
-  });
+    const worker = new Worker('./worker.js', { workerData: word });
+    worker.on('message', console.log);
+    worker.on('error', console.error);
+    worker.on('exit', code => {
+        if (code !== 0) {
+            throw new Error(`Worker stopped with exit code ${code}`);
+        }
+    });
 });
