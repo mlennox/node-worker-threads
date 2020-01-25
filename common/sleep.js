@@ -1,8 +1,9 @@
 
 module.exports = {
-    sleep: (ms) => {
-        return new Promise(resolve => {
-            setTimeout(resolve, ms);
-        });
-    }
+  // makes setTimeout async rather than requiring a callback
+  sleep: (ms) => {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
+  }
 };

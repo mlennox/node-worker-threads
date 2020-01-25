@@ -1,5 +1,5 @@
 const {
-    parentPort, workerData
+  parentPort, workerData
 } = require('worker_threads');
 const { performance } = require('perf_hooks');
 
